@@ -1,0 +1,439 @@
+TESTNEW  SUBENTRY BASES=(3)
+         WTO    '*************** INICIO DEL PROGRAMA ***************' 
+         WTO    'Cual es el numero de objetos a enviar?'
+		 WTO    'El numero debe tener 2 digitos'
+TRY      WTOR   'El numero debe estar entre 0 y 20',NUM,,WAITECB
+         WAIT   ECB=WAITECB
+         WTO MF=(E,NAMERDW)		  
+         BAL    5,VALIDO		
+		 
+CONTINUO LA     6,NUM 
+		 CLI    0(6),X'60'  *60 es '-' en hexadecimal de EBCDIC 
+		 BE     NEGATIVO
+
+CICLO  	 CP     PNUM,CONT
+         BE     MORE 
+		 WTOR   'Ingrese el peso del objeto con un solo digito',PESO,,WAITECB
+		 WAIT   ECB=WAITECB
+		 WTO MF=(E,NAMER) 
+		 PACK   PPESO,PESO
+		 BAL   	10,VALPESO    Revizar esto xq no anda bien 		 
+		 BAL    5,MENU		 
+		 AP     CONT,=P'1'    *Sumo 1 para avanzar en el ciclo  
+		 BAL    5,CICLO
+	 
+MORE 	 WTO 	'Objetos con destino a Bariloche'
+*Bariloche
+		 LA 	4,BARILO
+		 ST		4,DI 
+		 BAL 	10,BURBUJEO
+		 LA 	4,BARILO
+		 L		5,=F'20'
+		 BAL 	6,VERVEC
+		 LA 	4,BARILO	
+		 BAL 	11,FP
+*Posadas			 	
+		 ZAP 	VACIO,=P'0'
+		 WTO 	'Objetos con destino a Posadas'		 
+		 LA 	4,POSADAS
+		 ST		4,DI 
+		 BAL 	10,BURBUJEO
+		 LA 	4,POSADAS
+		 L		5,=F'20'
+		 BAL 	6,VERVEC
+		 LA 	4,POSADAS	
+		 BAL 	11,FP2
+*Salta		 	
+		 ZAP 	VACIO,=P'0'
+		 WTO 	'Objetos con destino a Salta'		 
+		 LA 	4,SALTA
+		 ST		4,DI 
+		 BAL 	10,BURBUJEO
+		 LA 	4,SALTA
+		 L		5,=F'20'
+		 BAL 	6,VERVEC
+		 LA 	4,SALTA 	
+		 BAL 	11,FP1 
+*Mar del Plata 		 	
+		 ZAP 	VACIO,=P'0'
+		 WTO 	'Objetos con destino a Mar Del Plata'		 
+		 LA 	4,MARDEL
+		 ST		4,DI 
+		 BAL 	10,BURBUJEO
+		 LA 	4,MARDEL
+		 L		5,=F'20'
+		 BAL 	6,VERVEC 	
+		 LA 	4,MARDEL	
+		 BAL 	11,FP3		
+FIN      WTO    'FIN'		 
+         	 
+         SUBEXIT
+		 
+****RUTINAS INTERNAS****		 
+
+NEGATIVO WTO    'El numero es negativo'	
+         WTO    'En la inmidiatez detendre la ejecucion del programa'
+		 WTO    'Por tratar de romper el codigo'
+		 WTO    'Persona horrible'
+         BAL    5,FIN 	 		 		 
+		 
+VALIDO   PACK   PNUM,NUM
+		 CP     PNUM,=P'0'     
+		 BE     ESZERO      *Chequeo que no sea cero
+         CP     PNUM,=P'20'
+         BH     OVERFLOW  	*Chequeo que no se pase de 20 
+		 WTO    'El numero es valido'
+         WTO    'Porque su modulo esta entre 0 y 20'
+         BR     5	 
+		 
+OVERFLOW WTO    'ERROR'
+         WTO    'El numero es mayor a 20'
+         WTO    'Vuelva a ingresar la cantidad de objetos'  
+		 BAL    5,TRY 
+
+MENU 	 WTO    '1: Bariloche'
+		 WTO    '2: Mar Del Plata'
+		 WTO    '3: Posadas' 
+		 WTO    '4: Salta'
+		 WTO    'Segun el criterio anterior'
+DESTINY	 WTOR   'Ingrese el destino del objeto',DESTINO,,WAITECB
+		 WAIT   ECB=WAITECB
+		 WTO MF=(E,NAMEDIR)		
+		 PACK   PDESTINO,DESTINO
+		 BAL  	10,VALDURA
+		 BAL 	10,GUARDAR
+NEXT	 BR     5
+
+VALPESO  CP     PPESO,=P'0'
+		 BE     VALPESO1 
+		 CP     PPESO,=P'8'
+		 BH     VALPESO2
+		 BR		10
+VALPESO1 WTO	'El peso del objeto no puede ser cero'
+		 BAL	5,CICLO	
+VALPESO2 WTO	'el peso del objeto no puede mayor a 8'
+		 BAL	5,CICLO
+		 
+VALDURA  CP     PDESTINO,=P'0'
+		 BE     VALDURA1 
+		 CP     PDESTINO,=P'4'
+		 BH     VALDURA2
+		 BR		10 	*Ver el programa termina cuando valida bien
+VALDURA1 WTO	'El destino del objeto no puede ser cero'
+		 BAL	5,DESTINY
+VALDURA2 WTO	'el destino del objeto esta fuera de rango'
+		 BAL	5,EXCEP 	 
+		 
+EXCEP 	 WTO    'Error: en el rango de los datos'
+		 WTO 	'Vuelva a introducir los datos'
+		 BAL 	5,CICLO	
+					
+ESZERO	 WTO    'El numero es el cero'
+         WTO    'El programa terminara'		 
+		 BAL    5,FIN		 
+		 		
+*Imprime el vector que este apuntado por el registro 4 	
+*R5 contiene el número de elementos a mostrar
+*NOTA: tambien sirve para imprimir los paquetes 
+*Solo tengo que ajustar NELEM para el tamaño de los paquetes
+*y des referenciar lo que estaba apuntado por el registro 4
+*Rutinas internas: VERLOOP
+VERVEC	 LA		8,PRINTVEC		* posicion actual
+		 L		7,=F'4'			* armar PRINTRDW: 8 del RDW
+		 AR		7,5				* NELEM caracteres
+		 AR		7,5				* (NELEM - 1) comas
+		 S		7,=F'1'
+		 SLL	7,16			*lo pongo en la media palabra de la izq
+		 ST		7,PRINTRDW		*guardo lo que voy a imprimir
+VERLOOP	 UNPK   0(1,8),0(1,4)	* guardar en EBCDIC
+		 MVZ	0(1,8),=X'FF'
+		 LA		8,2(8)			* avanzo de a 2 por la ','
+		 LA		4,1(4)			* vector de empaquetados de largo 1
+		 S		5,=F'1'			* decremento contador de ciclos
+		 C		5,=F'0'			* si ciclé todos los elementos, termino
+		 BNE	VERLOOP
+		 WTO	MF=(E,PRINTRDW)
+		 BR		6 
+		 
+*OK
+*Rutinas internas: 
+BURBUJEO ZAP	NELEM,=P'20'	* asegurar que nelem nunca sea 20
+CICLAR1	 ZAP	CONT1,=P'00'
+		 L		6,DI
+		 SP		NELEM,=P'1'
+		 CP		NELEM,=P'1'
+		 BE		SALIR
+CICLAR	 CP		0(1,6),1(1,6)
+		 BL		SWAP
+PASAR	 AP		CONT1,=P'1'
+		 LA		6,1(6)
+		 CP		CONT1,NELEM		* ciclo interno
+		 BNE	CICLAR
+		 CP		CONT1,NELEM		* ciclo externo
+		 BE		CICLAR1
+SALIR	 ZAP	NELEM,=P'20'
+		 BR		10
+		 
+*Intercambia el valor de 2 variables 		
+*OK 
+SWAP	 ZAP 	AUX,0(1,6)		* aux = lista[j]
+		 ZAP	0(1,6),1(1,6)	* lista[j] = lista[j+1]	
+		 ZAP	1(1,6),AUX		* lista[j+1] = aux 
+		 BAL	12,PASAR 
+		 
+*La rutina tiene que llenar todos los paquetes hasta 
+*que no queden objetos en el vector y/o llegue a fin de vector
+*El registro 4 apunta al vector con los objetos
+*El registro 5 apunta al paquete que llenar y que 
+*sera vaciado y reutilizado hasta terminar el vector
+*Rutinas internas: FMJ, FMP 
+*Procesa el vector vec y SOLO ese 
+*OK 
+FP 		 WTO 	'Paquetes de Bariloche'
+FMP		 BAL 	6,ISEMPTY
+		 CP		VACIO,=P'1'
+		 BE 	FMJ
+		 LA 	5,PACK
+		 BAL 	6,VACIAR
+		 LA 	4,BARILO
+		 LA 	5,PACK
+		 ZAP 	CONT,=P'00'
+		 BAL	10,LLENAR
+		 LA 	4,PACK
+		 L		5,=F'8'
+		 BAL	6,VERVEC
+		 LA 	4,BARILO
+		 ST		4,DI 
+		 BAL 	10,BURBUJEO
+		 LA 	4,BARILO
+		 BAL 	9,FMP
+FMJ  	 BR		11
+
+*Rutinas internas: FMP1, FMA
+FP1 	 WTO 	'Paquetes de Salta'
+FMP1	 BAL 	6,ISEMPTY
+		 CP		VACIO,=P'1'
+		 BE 	FMA
+		 LA 	5,PACK
+		 BAL 	6,VACIAR
+		 LA 	4,SALTA
+		 LA 	5,PACK
+		 ZAP 	CONT,=P'00'
+		 BAL	10,LLENAR
+		 LA 	4,PACK
+		 L		5,=F'8'
+		 BAL	6,VERVEC
+		 LA 	4,SALTA
+		 ST		4,DI 
+		 BAL 	10,BURBUJEO
+		 LA 	4,SALTA
+		 BAL 	9,FMP1
+FMA  	 BR		11
+
+*Rutinas internas: FMP2, FMB
+FP2 	 WTO 	'Paquetes de Posadas'
+FMP2	 BAL 	6,ISEMPTY
+		 CP		VACIO,=P'1'
+		 BE 	FMB
+		 LA 	5,PACK
+		 BAL 	6,VACIAR
+		 LA 	4,POSADAS
+		 LA 	5,PACK
+		 ZAP 	CONT,=P'00'
+		 BAL	10,LLENAR
+		 LA 	4,PACK
+		 L		5,=F'8'
+		 BAL	6,VERVEC
+		 LA 	4,POSADAS
+		 ST		4,DI 
+		 BAL 	10,BURBUJEO
+		 LA 	4,POSADAS
+		 BAL 	9,FMP2
+FMB  	 BR		11
+		 
+*Rutinas internas: FMP3, FMC
+FP3 	 WTO 	'Paquetes de Mar Del Plata'
+FMP3	 BAL 	6,ISEMPTY
+		 CP		VACIO,=P'1'
+		 BE 	FMC
+		 LA 	5,PACK
+		 BAL 	6,VACIAR
+		 LA 	4,MARDEL
+		 LA 	5,PACK
+		 ZAP 	CONT,=P'00'
+		 BAL	10,LLENAR
+		 LA 	4,PACK
+		 L		5,=F'8'
+		 BAL	6,VERVEC
+		 LA 	4,MARDEL
+		 ST		4,DI 
+		 BAL 	10,BURBUJEO
+		 LA 	4,MARDEL
+		 BAL 	9,FMP3
+FMC  	 BR		11		 
+
+*El registro 4 apunta al vector con los objetos
+*El registro 5 apunta al paquete que llenar 
+*Tengo que controlar el contador 
+*OK 	
+*Rutinas internas: GT, NFS, FORZA	 
+LLENAR	 ZAP 	CONT,=P'00'
+		 ZAP 	CONTPACK,=P'00'
+GT	 	 CP 	ESPACIO,=P'0'
+		 BE 	NFS
+		 CP 	CONT,=P'20'
+		 BE 	NFS 
+		 CP 	CONTPACK,=P'8'
+		 BE 	NFS 
+		 CP		0(1,4),ESPACIO 
+		 BH 	FORZA
+		 ZAP 	0(1,5),0(1,4)		 
+		 AP 	CONTPACK,=P'1'
+		 LA 	5,1(5)
+		 SP		ESPACIO,0(1,4)
+		 ZAP 	0(1,4),=P'9'
+FORZA	 LA 	4,1(4)
+		 AP 	CONT,=P'1'
+		 B      GT
+NFS	 	 ZAP	ESPACIO,=P'8'
+		 AP 	PNUMPACK,=P'1'
+		 UNPK	NUMPACK,PNUMPACK
+		 MVZ    NUMPACK,=X'FFFF'
+		 WTO MF=(E,WTOBLOCK)
+		 ZAP 	CONT,=P'00'
+		 ZAP 	CONTPACK,=P'00'
+		 BR 	10 
+		 
+*El registro 5 apunta al paquete a vaciar	
+*Seteo el contador al principio y al final de la rutina 
+*Vuelve a tener 8 de espacio 
+*OK 
+*Rutinas internas: YY, HO
+VACIAR 	 ZAP 	CONTVEC,=P'0'
+YY		 CP		CONTVEC,=P'8'
+		 BE 	HO 
+		 ZAP 	0(1,5),=P'0'
+		 AP 	CONTVEC,=P'1'
+		 LA 	5,1(5)
+		 BAL 	10,YY		 
+HO		 ZAP 	CONTVEC,=P'0'
+		 ZAP 	ESPACIO,=P'8'
+		 BR 	6		 
+		 
+*si el vector esta lleno de 0 Y/O 9
+*es xq el vector ya no tiene elementos que pueda 
+*meter en un paquete, caso contrario todavia
+*hay objetos que meter en algun paquete 
+*El registro 4 apunta al vector
+*VACIO me guarda si el vector quedo vacio o no 
+*OK
+*Rutinas internas: AB,VERDAD,ZZ
+ISEMPTY  ZAP 	CONT,=P'0'
+ZZ		 CP 	CONT,=P'20'
+		 BE 	VERDAD 	*Si recorri todo el vector
+*						*es xq todas las posiciones tenian un 0
+*						*entonces todo el vector ya fue procesado
+		 CP		0(1,4),=P'0'
+		 BE 	AB 
+		 CP		0(1,4),=P'9'
+		 BE 	AB
+		 ZAP 	CONT,=P'0'
+		 BR 	6
+AB 		 LA 	4,1(4)
+		 AP 	CONT,=P'1'
+		 BAL 	10,ZZ
+VERDAD	 ZAP 	VACIO,=P'1' *VER 
+		 WTO 	'El vector esta vacio'
+		 ZAP 	CONT,=P'0'
+		 BR 	6		 
+		 
+*Guarda el peso en el vector correspondiente
+GUARDAR	 CP		PDESTINO,=P'1'
+		 BE 	GBARILO
+		 CP		PDESTINO,=P'2'
+		 BE		GMARDEL 
+		 CP		PDESTINO,=P'3'
+		 BE 	GPOSADAS
+		 CP		PDESTINO,=P'4'
+		 BE		GSALTA 
+FI		 BR 	10
+		 
+GBARILO  LA 	4,BARILO
+		 BAL	9,INSERT 
+GMARDEL  LA 	4,MARDEL
+		 BAL	9,INSERT 
+GPOSADAS LA 	4,POSADAS
+		 BAL	9,INSERT
+GSALTA	 LA 	4,SALTA
+		 BAL	9,INSERT			 
+		 BAL 	8,FI
+*Inserta en el vector que este apuntado por el registro 4 	
+*En la primer posicion que contenga un cero 	
+*OK 
+INSERT 	 CP 	0(1,4),=P'0'
+		 BH		AVANZAR
+		 ZAP 	0(1,4),PPESO
+		 ZAP 	BOOL,=P'1'  	*BOOL = 1 si inserte el elemento
+AVANZAR	 LA 	4,1(4)
+		 CP 	BOOL,=P'1'
+		 BE 	TERMINE  
+		 BAL 	6,INSERT 	
+TERMINE	 ZAP 	BOOL,=P'0' 		*seteo a BOOL 
+		 BR 	10 
+
+* NUMero empaquetado, NUM representa una variable empaquetada
+PNUM     DS     PL2
+PPESO    DS     P 
+PDESTINO DS		P 
+
+CONT     DC     PL2'0'   *Contador inicializado en 0
+CONTVEC  DC     PL2'00'	 *Contador para iterar un vector 	 
+AUX 	 DC 	P'0'   	 *Constante para swappear en burbujeo
+CONT1	 DC     PL2'00'  *Variable1 para contar ciclos en burbujeo
+NELEM 	 DC 	PL2'20'	 *Numero de elementos del vector 
+PNUMPACK DC 	PL2'00'
+BOOL	 DC 	P'0' 	 *Lo voy a usar como booleano
+*						 *vale 0 si es falso, 1 si es verdadero
+VACIO	 DC 	P'0' 	 *Otro booleano
+*						 *vale 0 si el vector apùntado en el registro 4 
+*						 *no esta "vacio" y 1 si esta vacio 
+DI		 DS 	F		 *fullword para guardar un puntero a un vector
+CONTPACK DC		PL2'00'
+
+NAMERDW  DC     H'20'
+         DC     H'0'
+		 DC     C'EL NUMERO ES: '
+NUM     DS     CL2
+NAMER    DC     H'17'
+         DC     H'0'
+		 DC     C'EL PESO ES: '
+PESO    DS     CL1
+NAMEDIR  DC     H'22'
+         DC     H'0'
+		 DC     C'LA DIRECCION ES: '
+DESTINO DS     CL1
+
+WTOBLOCK DC		H'31'
+		 DC 	H'0'
+		 DC     C'El numero de paquete es: '
+NUMPACK DC 	PL2'00'	
+
+*Con esto imprimo los vectores y paquetes 
+PRINTRDW	DC		H'43'
+			DC		H'0'
+PRINTVEC	DC		20C'X,'
+
+*Listas que voy a usar para guardar los objetos segun su destino
+*20 empaquetados inicializados en 0
+BARILO   DC     P'0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0'
+MARDEL   DC     P'0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0'
+POSADAS  DC     P'0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0'
+SALTA    DC     P'0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0'
+
+
+*PACK 	 DC 	8P'0'
+PACK 	 DC 	P'0,0,0,0,0,0,0,0'
+ESPACIO  DC 	PL3'008' *Me dice cuanto espacio tengo en el paquete 	 
+
+WAITECB  DC     F'0'
+         END   
